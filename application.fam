@@ -1,0 +1,11 @@
+App(
+    appid="daikiri",
+    name="Dairiri",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="daikiri_app",
+    requires=["gui", "dialogs"],
+    stack_size=2 * 1024,
+    fap_icon="clock.png",
+    targets=["f7"]
+    #fap_category="Tools",
+)
