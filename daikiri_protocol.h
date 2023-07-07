@@ -2,17 +2,17 @@
 
 #include <furi.h>
 #include <furi_hal.h>
+#include <flipper_application.h>
 
-#define DAIKIRI_DECODER_TAG "DaikiriDecoder"
-
-#define PROLOGUE_MARK_2 9739
+#define PROLOGUE_MARK_2 9737
 #define PROLOGUE_MARK_3 9910
-#define PROLOGUE_MARK_1 9863
+#define PROLOGUE_MARK_1 9886
 #define BEGIN_FINISH_MARK 4686
 #define PROLOGUE_MARK_4 2425
 #define ZERO 336
+#define ZERO_MARK 399
 #define ONE 886
-#define MARK 425
+#define ONE_MARK 425
 #define EPILOGUE_MARK_1 50
 #define DAIKIRI_TIMINGS_CNT 137
 
@@ -56,10 +56,8 @@ typedef struct {
     bool is_timer_off_enabled;
     uint8_t timer_off_hours;
     uint8_t timer_off_minutes;
-} DaikiriDecoded;
-
-void daikiri_decoded_free(DaikiriDecoded* ptr);
+} DaikiriProtocol;
 
 bool is_equial_by_precision(uint32_t a, uint32_t b, uint32_t precision);
 
-DaikiriDecoded* daikiri_decode(const uint32_t* timings, size_t timings_cnt);
+void daikiri_protocol_free(DaikiriProtocol* ptr);
