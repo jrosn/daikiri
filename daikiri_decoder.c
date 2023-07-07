@@ -100,6 +100,51 @@ void daikiri_decode_mode(DaikiriDecoded* decoded) {
     furi_assert(true);
 }
 
+void daikiri_decode_is_timer_on_enabled(DaikiriDecoded* decoded) {
+    uint64_t mask = (uint64_t)0x8000000000; //0x8000000000
+    decoded->is_timer_on_enabled = (uint64_t)((decoded->raw & mask) >> 39);
+}
+void daikiri_decode_is_timer_off_enabled(DaikiriDecoded* decoded) {
+    uint64_t mask = (uint64_t)0x800000000000;
+    decoded->is_timer_off_enabled = (uint64_t)((decoded->raw & mask) >> 47);
+}
+
+void daikiri_decode_hash(DaikiriDecoded* decoded) {
+    // Хеш сумма = сумма всех следующих за ней тетрад.
+    uint64_t mask = (uint64_t)0xF000000000000000;
+    decoded->hash = ((decoded->raw & mask) >> 60);
+}
+
+void daikiri_decode_timer_on_hours(DaikiriDecoded* decoded) {
+    uint64_t mask = (uint64_t)0x3F00000000;
+    decoded->timer_on_hours = (uint64_t)((decoded->raw & mask) >> 32);
+}
+
+void daikiri_decode_timer_on_minutes(DaikiriDecoded* decoded) {
+    uint64_t mask = (uint64_t)0x4000000000;
+    uint8_t timer_on_minutes_code = (uint64_t)((decoded->raw & mask) >> 38);
+    if(timer_on_minutes_code > 0) {
+        decoded->timer_on_minutes = 0x30;
+    } else {
+        decoded->timer_on_minutes = 0x0;
+    }
+}
+
+void daikiri_decode_timer_off_hours(DaikiriDecoded* decoded) {
+    uint64_t mask = (uint64_t)0x3F0000000000;
+    decoded->timer_off_hours = (uint64_t)((decoded->raw & mask) >> 40);
+}
+
+void daikiri_decode_timer_off_minutes(DaikiriDecoded* decoded) {
+    uint64_t mask = (uint64_t)0x400000000000;
+    uint8_t timer_off_minutes_code = (uint64_t)((decoded->raw & mask) >> 46);
+    if(timer_off_minutes_code > 0) {
+        decoded->timer_off_minutes = 0x30;
+    } else {
+        decoded->timer_off_minutes = 0x0;
+    }
+}
+
 uint64_t set_bit(uint64_t value, size_t idx, int8_t bit_value) {
     uint64_t mask = (int64_t)(((uint64_t)(1LL)) << ((uint64_t)(idx)));
     if(bit_value > 0) {
@@ -159,7 +204,6 @@ DaikiriDecoded* daikiri_decode(const uint32_t* timings, size_t timings_cnt) {
         return NULL;
     }
 
-    // 64 бита
     uint64_t raw = 0;
     size_t raw_idx = 0;
     // Смотрим на значащие сигналы между маркерными, которые идут вначале и в конце.
@@ -194,6 +238,13 @@ DaikiriDecoded* daikiri_decode(const uint32_t* timings, size_t timings_cnt) {
     daikiri_decode_is_sleep_mode(result);
     daikiri_decode_is_swing(result);
     daikiri_decode_is_toggle_power(result);
+    daikiri_decode_hash(result);
+    daikiri_decode_is_timer_on_enabled(result);
+    daikiri_decode_timer_on_hours(result);
+    daikiri_decode_timer_on_minutes(result);
+    daikiri_decode_is_timer_off_enabled(result);
+    daikiri_decode_timer_off_hours(result);
+    daikiri_decode_timer_off_minutes(result);
 
     return result;
 }

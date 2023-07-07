@@ -34,7 +34,7 @@
     PRINTF_BYTE_TO_BINARY_INT32((i) >> 32), PRINTF_BYTE_TO_BINARY_INT32(i)
 /* --- end macros --- */
 
-static char* daikiri_mode_to_string(DaikiriMode mode) {
+__unused char* daikiri_mode_to_string(DaikiriMode mode) {
     if(mode == DAIKIRI_MODE_COOL) return "C";
     if(mode == DAIKIRI_MODE_DRY) return "D";
     if(mode == DAIKIRI_MODE_FAN) return "F";
@@ -43,7 +43,7 @@ static char* daikiri_mode_to_string(DaikiriMode mode) {
     return 0;
 }
 
-static char* daikiri_fan_mode_to_string(DaikiriFanMode fan_mode) {
+__unused static char* daikiri_fan_mode_to_string(DaikiriFanMode fan_mode) {
     if(fan_mode == DAIKIRI_FAN_MODE_AUTO) return "A";
     if(fan_mode == DAIKIRI_FAN_MODE_MIN) return "1";
     if(fan_mode == DAIKIRI_FAN_MODE_MEDIUM) return "2";
@@ -85,7 +85,12 @@ static void
 
         FURI_LOG_I(
             TAG,
-            "raw: 0x%016llx; time: %02x:%02x, mode: %s, temp: %02x, fan: %s, sm: %hhu, sw: %hhu\ntp: %hhu",
+            PRINTF_BINARY_PATTERN_INT8,
+            PRINTF_BYTE_TO_BINARY_INT8(daikiri_decoded->timer_on_hours));
+
+        FURI_LOG_I(
+            TAG,
+            "raw: 0x%016llx, time: %02x:%02x, mode: %s, temp: %02x, fan: %s, sm: %hhu, sw: %hhu, tp: %hhu, hash: %01x, on: %hhu (%02x:%02x), off: %01x (%02x:%02x)",
             daikiri_decoded->raw,
             daikiri_decoded->current_time_hours,
             daikiri_decoded->current_time_minutes,
@@ -94,24 +99,38 @@ static void
             daikiri_fan_mode_to_string(daikiri_decoded->fan_mode),
             daikiri_decoded->is_sleep_mode,
             daikiri_decoded->is_swing,
-            daikiri_decoded->is_toggle_power);
+            daikiri_decoded->is_toggle_power,
+            daikiri_decoded->hash,
+            daikiri_decoded->is_timer_on_enabled,
+            daikiri_decoded->timer_on_hours,
+            daikiri_decoded->timer_on_minutes,
+            daikiri_decoded->is_timer_off_enabled,
+            daikiri_decoded->timer_off_hours,
+            daikiri_decoded->timer_off_minutes);
 
-        FURI_LOG_I(
-            TAG, PRINTF_BINARY_PATTERN_INT64, PRINTF_BYTE_TO_BINARY_INT64(daikiri_decoded->raw));
+        // FURI_LOG_I(
+        //     TAG, PRINTF_BINARY_PATTERN_INT64, PRINTF_BYTE_TO_BINARY_INT64(daikiri_decoded->raw));
         char buf[128];
         snprintf(
             buf,
             sizeof(buf),
-            "raw: 0x%016llx\ntp: %hhu\nm: %s, t: %02x, f: %s, sm: %hhu, sw: %hhu\ntime: %02x:%02x",
-            daikiri_decoded->raw,
+            "tp: %hhu, hash: %01x\nm: %s, t: %02x, f: %s, sm: %hhu, sw: %hhu\ntime: %02x:%02x\non: %hhu (%02x:%02x), off: %hhu (%02x:%02x)",
             daikiri_decoded->is_toggle_power,
+            daikiri_decoded->hash,
             daikiri_mode_to_string(daikiri_decoded->mode),
             daikiri_decoded->temperature,
             daikiri_fan_mode_to_string(daikiri_decoded->fan_mode),
             daikiri_decoded->is_sleep_mode,
             daikiri_decoded->is_swing,
             daikiri_decoded->current_time_hours,
-            daikiri_decoded->current_time_minutes);
+            daikiri_decoded->current_time_minutes,
+            daikiri_decoded->is_timer_on_enabled,
+            daikiri_decoded->timer_on_hours,
+            daikiri_decoded->timer_on_minutes,
+            daikiri_decoded->is_timer_off_enabled,
+            daikiri_decoded->timer_off_hours,
+            daikiri_decoded->timer_off_minutes);
+
         DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
         DialogMessage* message = dialog_message_alloc();
         dialog_message_set_header(message, "Received signal!", 3, 2, AlignLeft, AlignTop);

@@ -43,9 +43,19 @@ typedef struct {
 
     uint8_t temperature;
 
+    uint8_t hash;
+
     bool is_sleep_mode;
     bool is_swing;
     bool is_toggle_power;
+
+    bool is_timer_on_enabled;
+    uint8_t timer_on_hours;
+    uint8_t timer_on_minutes;
+
+    bool is_timer_off_enabled;
+    uint8_t timer_off_hours;
+    uint8_t timer_off_minutes;
 } DaikiriDecoded;
 
 void daikiri_decoded_free(DaikiriDecoded* ptr);
