@@ -17,12 +17,14 @@
 #define DAIKIRI_TIMINGS_CNT 137
 
 typedef enum {
-    DAIKIRI_FAN_MODE_MAX,
-    DAIKIRI_FAN_MODE_MEDIUM,
-    DAIKIRI_FAN_MODE_MIN,
     DAIKIRI_FAN_MODE_AUTO,
     DAIKIRI_FAN_MODE_QUIET,
-    DAIKIRI_FAN_MODE_TURBO
+    DAIKIRI_FAN_MODE_MIN,
+    DAIKIRI_FAN_MODE_MEDIUM,
+    DAIKIRI_FAN_MODE_MAX,
+    DAIKIRI_FAN_MODE_TURBO,
+
+    DAIKIRI_FAN_MODE_CNT
 } DaikiriFanMode;
 
 typedef enum {
@@ -30,7 +32,9 @@ typedef enum {
     DAIKIRI_MODE_DRY,
     DAIKIRI_MODE_FAN,
     DAIKIRI_MODE_HEAT,
-    DAIKIRI_MODE_AUTO
+    DAIKIRI_MODE_AUTO,
+
+    DAIKIRI_MODE_CNT
 } DaikiriMode;
 
 typedef struct {
@@ -61,3 +65,5 @@ typedef struct {
 bool is_equial_by_precision(uint32_t a, uint32_t b, uint32_t precision);
 
 void daikiri_protocol_free(DaikiriProtocol* ptr);
+
+DaikiriProtocol* daikiri_protocol_alloc_default();

@@ -9,3 +9,5 @@ void daikiri_protocol_encode_fan_mode(DaikiriProtocol* decoded);
 void daikiri_protocol_encode(DaikiriProtocol* protocol);
 
 void daikiri_protocol_constuct_timings(DaikiriProtocol* protocol, uint32_t** timings_out, size_t* timings_cnt_out);
+
+void daikiri_protocol_send(DaikiriProtocol* protocol);

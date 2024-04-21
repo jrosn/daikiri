@@ -1,165 +1,74 @@
-#include <furi.h>
+#include "daikiri_app_i.h"
 
-#include <gui/gui.h>
-#include <gui/elements.h>
-#include <gui/view.h>
-#include <infrared.h>
-#include <infrared_worker.h>
-#include <notification/notification.h>
-#include <notification/notification_messages.h>
-#include <dialogs/dialogs.h>
+#include "furi.h"
 
-#include "daikiri_protocol.h"
-#include "daikiri_protocol_decoder.h"
-#include "daikiri_protocol_encoder.h"
-#include "daikiri_defs.h"
-
-static char* daikiri_mode_to_string(DaikiriMode mode) {
-    if(mode == DAIKIRI_MODE_COOL) return "C";
-    if(mode == DAIKIRI_MODE_DRY) return "D";
-    if(mode == DAIKIRI_MODE_FAN) return "F";
-    if(mode == DAIKIRI_MODE_HEAT) return "H";
-    if(mode == DAIKIRI_MODE_AUTO) return "A";
-    return 0;
+static bool daikiri_app_custom_event_callback(void* context, uint32_t event) {
+    furi_assert(context);
+    DaikiriApp* app = context;
+    return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static char* daikiri_fan_mode_to_string(DaikiriFanMode fan_mode) {
-    if(fan_mode == DAIKIRI_FAN_MODE_AUTO) return "A";
-    if(fan_mode == DAIKIRI_FAN_MODE_MIN) return "1";
-    if(fan_mode == DAIKIRI_FAN_MODE_MEDIUM) return "2";
-    if(fan_mode == DAIKIRI_FAN_MODE_MAX) return "3";
-    if(fan_mode == DAIKIRI_FAN_MODE_QUIET) return "Q";
-    if(fan_mode == DAIKIRI_FAN_MODE_TURBO) return "T";
-    return 0;
+static bool daikiri_app_back_event_callback(void* context) {
+    furi_assert(context);
+    DaikiriApp* app = context;
+    return scene_manager_handle_back_event(app->scene_manager);
 }
 
-static void daikiri_draw_callback(Canvas* canvas, void* context) {
-    UNUSED(context);
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 5, 12, "I am Daikiri");
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 5, 32, "Waiting a signal...");
+static void daikiri_app_tick_event_callback(void* context) {
+    furi_assert(context);
+    DaikiriApp* app = context;
+    scene_manager_handle_tick_event(app->scene_manager);
 }
 
-static void daikiri_input_callback(InputEvent* input_event, void* ctx) {
-    furi_assert(ctx);
+DaikiriApp* daikiri_app_alloc() {
+    DaikiriApp* app = malloc(sizeof(DaikiriApp));
 
-    FuriMessageQueue* event_queue = ctx;
-    furi_message_queue_put(event_queue, input_event, FuriWaitForever);
+    app->gui = furi_record_open(RECORD_GUI);
+    app->scene_manager = scene_manager_alloc(&daikiri_scene_handlers, app);
+
+    app->view_dispatcher = view_dispatcher_alloc();
+    view_dispatcher_enable_queue(app->view_dispatcher);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+    view_dispatcher_set_custom_event_callback(
+            app->view_dispatcher, daikiri_app_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+            app->view_dispatcher, daikiri_app_back_event_callback);
+    view_dispatcher_set_tick_event_callback(
+            app->view_dispatcher, daikiri_app_tick_event_callback, 100);
+
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+
+    app->view_stack = view_stack_alloc();
+    view_dispatcher_add_view(
+            app->view_dispatcher, DaikiriAppViewStack, view_stack_get_view(app->view_stack));
+
+    app->ac_remote_panel = ac_remote_panel_alloc();
+
+    scene_manager_next_scene(app->scene_manager, DaikiriSceneMain);
+    return app;
 }
 
-static void daikiri_signal_received_callback(void* context, InfraredWorkerSignal* received_signal) {
-    UNUSED(context);
+void daikiri_app_free(DaikiriApp* app) {
+    furi_assert(app);
 
-    const uint32_t* timings;
-    size_t timings_cnt;
-    infrared_worker_get_raw_signal(received_signal, &timings, &timings_cnt);
+    // Views
+    view_dispatcher_remove_view(app->view_dispatcher, DaikiriAppViewStack);
 
-    DaikiriProtocol* decoded = daikiri_protocol_interpret_timings(timings, timings_cnt);
+    // View dispatcher
+    view_dispatcher_free(app->view_dispatcher);
+    view_stack_free(app->view_stack);
+    ac_remote_panel_free(app->ac_remote_panel);
+    scene_manager_free(app->scene_manager);
 
-    if(decoded != NULL) {
-        daikiri_protocol_decode(decoded);
-
-        DaikiriProtocol* protocol = malloc(sizeof(DaikiriProtocol));
-        memcpy(protocol, decoded, sizeof(DaikiriProtocol));
-        protocol->raw = 0;
-        daikiri_protocol_encode(protocol);
-
-        NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
-        notification_message(notifications, &sequence_success);
-        furi_record_close(RECORD_NOTIFICATION);
-        FURI_LOG_I(
-            TAG,
-            "Received signal: raw: 0x%016llx, time: %02x:%02x, mode: %s, temp: %02x, fan: %s, sm: %hhu, sw: %hhu, tp: %hhu, hash: %01x, on: %hhu (%02x:%02x), off: %01x (%02x:%02x)",
-            decoded->raw,
-            decoded->current_time_hours,
-            decoded->current_time_minutes,
-            daikiri_mode_to_string(decoded->mode),
-            decoded->temperature,
-            daikiri_fan_mode_to_string(decoded->fan_mode),
-            decoded->is_sleep_mode,
-            decoded->is_swing,
-            decoded->is_toggle_power,
-            decoded->hash,
-            decoded->is_timer_on_enabled,
-            decoded->timer_on_hours,
-            decoded->timer_on_minutes,
-            decoded->is_timer_off_enabled,
-            decoded->timer_off_hours,
-            decoded->timer_off_minutes);
-        char buf[128];
-        snprintf(
-            buf,
-            sizeof(buf),
-            "tp: %hhu, hash: %01x\nm: %s, t: %02x, f: %s, sm: %hhu, sw: %hhu\ntime: %02x:%02x\non: %hhu (%02x:%02x), off: %hhu (%02x:%02x)",
-            decoded->is_toggle_power,
-            decoded->hash,
-            daikiri_mode_to_string(decoded->mode),
-            decoded->temperature,
-            daikiri_fan_mode_to_string(decoded->fan_mode),
-            decoded->is_sleep_mode,
-            decoded->is_swing,
-            decoded->current_time_hours,
-            decoded->current_time_minutes,
-            decoded->is_timer_on_enabled,
-            decoded->timer_on_hours,
-            decoded->timer_on_minutes,
-            decoded->is_timer_off_enabled,
-            decoded->timer_off_hours,
-            decoded->timer_off_minutes);
-        DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
-        DialogMessage* message = dialog_message_alloc();
-        dialog_message_set_header(message, "Received signal!", 3, 2, AlignLeft, AlignTop);
-        dialog_message_set_text(message, buf, 3, 15, AlignLeft, AlignTop);
-        dialog_message_show(dialogs, message);
-        dialog_message_free(message);
-        furi_record_close(RECORD_DIALOGS);
-    }
-
-    daikiri_protocol_free(decoded);
+    // Close records
+    furi_record_close(RECORD_GUI);
+    free(app);
 }
 
 int32_t daikiri_app(void* p) {
     UNUSED(p);
-
-    InfraredWorker* worker = infrared_worker_alloc();
-    infrared_worker_rx_enable_signal_decoding(worker, false);
-    infrared_worker_rx_start(worker);
-    infrared_worker_rx_set_received_signal_callback(
-        worker, daikiri_signal_received_callback, NULL);
-    infrared_worker_rx_enable_blink_on_receiving(worker, true);
-
-    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-
-    ViewPort* view_port = view_port_alloc();
-    view_port_draw_callback_set(view_port, daikiri_draw_callback, view_port);
-    view_port_input_callback_set(view_port, daikiri_input_callback, event_queue);
-
-    Gui* gui = furi_record_open(RECORD_GUI);
-    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
-
-    InputEvent event;
-    bool running = true;
-    while(running) {
-        if(furi_message_queue_get(event_queue, &event, 100) == FuriStatusOk) {
-            if((event.type == InputTypePress) || (event.type == InputTypeRepeat)) {
-                switch(event.key) {
-                case InputKeyBack:
-                    running = false;
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-    }
-
-    gui_remove_view_port(gui, view_port);
-    view_port_free(view_port);
-    furi_record_close(RECORD_GUI);
-
-    infrared_worker_rx_stop(worker);
-    infrared_worker_free(worker);
+    DaikiriApp* app = daikiri_app_alloc();
+    view_dispatcher_run(app->view_dispatcher);
+    daikiri_app_free(app);
     return 0;
 }

@@ -3,9 +3,37 @@ App(
     name="Dairiri",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="daikiri_app",
-    requires=["gui", "dialogs"],
+    requires=[
+        "gui",
+        "dialogs",
+        "storage"
+    ],
     stack_size=2 * 1024,
     fap_icon="clock.png",
-    targets=["f7"]
-    #fap_category="Tools",
+    targets=["f7"],
+    #fap_category="Infrared",
+    fap_icon_assets="assets"
+)
+
+App(
+    appid="daikiri_decoder",
+    name="Dairiri Decoder",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="daikiri_decoder_app",
+    requires=[
+        "gui",
+        "dialogs",
+        "storage"
+    ],
+    stack_size=2 * 1024,
+    fap_icon="clock.png",
+    targets=["f7"],
+    sources=[
+        "*.c*",
+        "!daikiri_app.c",
+        "!scenes",
+        "!views"
+    ],
+    #fap_category="Infrared",
+    #fap_icon_assets="assets"
 )

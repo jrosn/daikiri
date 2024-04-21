@@ -1,6 +1,7 @@
 #include "daikiri_protocol_encoder.h"
 
 #include "daikiri_protocol.h"
+#include "infrared_transmit.h"
 
 #define GET_BIT(x, n) (((x) >> (n)) & 1)
 
@@ -68,13 +69,13 @@ void daikiri_protocol_encode_temperature(DaikiriProtocol* protocol) {
 
 void daikiri_protocol_encode_is_sleep_mode(DaikiriProtocol* protocol) {
     if(protocol->is_sleep_mode) {
-        protocol->raw = protocol->raw | ((uint64_t)((uint64_t)0x1) << 57);
+        protocol->raw = protocol->raw | (0x1LL << 57);
     }
 }
 
 void daikiri_protocol_encode_is_swing(DaikiriProtocol* protocol) {
     if(protocol->is_swing) {
-        protocol->raw = protocol->raw | ((uint64_t)((uint64_t)0x1) << 56);
+        protocol->raw = protocol->raw | (0x1LL << 56);
     }
 }
 
@@ -127,6 +128,16 @@ void daikiri_protocol_encode_timer_off_minutes(DaikiriProtocol* protocol) {
 }
 
 void daikiri_protocol_encode(DaikiriProtocol* protocol) {
+    furi_assert(0 <= protocol->current_time_hours && protocol->current_time_hours <= 59);
+    furi_assert(0 <= protocol->current_time_minutes && protocol->current_time_minutes <= 59);
+    furi_assert(16 <= protocol->temperature && protocol->temperature <= 30);
+    assert(protocol->mode != DAIKIRI_MODE_CNT);
+    assert(protocol->mode != DAIKIRI_FAN_MODE_CNT);
+    assert(protocol->mode != DAIKIRI_MODE_FAN ||
+        protocol->fan_mode == DAIKIRI_FAN_MODE_MAX ||
+        protocol->fan_mode == DAIKRI_FAN_MODE_MEDIUM ||
+        protocol->fan_mode == DAIKIRI_FAN_MODE_MIN);
+
     protocol->raw = 0;
     daikiri_protocol_encode_current_time_hours(protocol);
     daikiri_protocol_encode_current_time_minutes(protocol);
@@ -176,25 +187,35 @@ void daikiri_protocol_constuct_timings(DaikiriProtocol* protocol, uint32_t** tim
     timings[5] = PROLOGUE_MARK_4;
     timings[6] = ONE_MARK;
 
-    timings[135] = EPILOGUE_MARK_1;
+    timings[135] = 20199;
     timings[136] = BEGIN_FINISH_MARK;
 
     size_t timings_idx = 7;
-    for (int i = 63; i >= 0; i--) {
+    for (int i = 0; i < 64; i++) {
         if (GET_BIT(protocol->raw, i)) {
-            timings[timings_idx] = ONE;
-            timings[timings_idx + 1] = ONE_MARK;
-            timings_idx++;
+            timings[timings_idx++] = ONE;
+            timings[timings_idx++] = ONE_MARK;
         } else {
-            timings[timings_idx] = ZERO;
-            timings[timings_idx + 1] = ZERO_MARK;
-            timings_idx++;
+            timings[timings_idx++] = ZERO;
+            timings[timings_idx++] = ZERO_MARK;
         }
     }
 
     *timings_out = timings;
     *timings_cnt_out = timings_cnt;
+}
 
-    //    frequency: 38000
-    //    duty_cycle: 0.330000
+void daikiri_protocol_send(DaikiriProtocol* protocol) {
+    uint32_t* timings = NULL;
+    size_t timings_cnt = 0;
+    daikiri_protocol_encode(protocol);
+    daikiri_protocol_constuct_timings(protocol, &timings, &timings_cnt);
+    FuriString* decoded_string = furi_string_alloc();
+    for (size_t i = 0; i < timings_cnt; i++) {
+        furi_string_cat_printf(decoded_string, "\r\n%ld", timings[i]);
+    }
+    FURI_LOG_I("DaikiriEncoder", "%s", furi_string_get_cstr(decoded_string));
+
+    infrared_send_raw_ext(timings, timings_cnt, true, 38000, 0.33f);
+    free(timings);
 }
