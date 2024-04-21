@@ -52,15 +52,18 @@ void daikiri_protocol_encode_mode(DaikiriProtocol* protocol) {
 }
 
 void daikiri_protocol_encode_current_time_hours(DaikiriProtocol* protocol) {
-    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(protocol->current_time_hours) << 24));
+    uint8_t code = ((protocol->current_time_hours / 10) << 4) + protocol->current_time_hours % 10;
+    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(code) << 24));
 }
 
 void daikiri_protocol_encode_current_time_minutes(DaikiriProtocol* protocol) {
-    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(protocol->current_time_minutes) << 16));
+    uint8_t code = ((protocol->current_time_minutes / 10) << 4) + protocol->current_time_minutes % 10;
+    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(code) << 16));
 }
 
 void daikiri_protocol_encode_temperature(DaikiriProtocol* protocol) {
-    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(protocol->temperature) << 48));
+    uint8_t code = ((protocol->temperature / 10) << 4) + protocol->temperature % 10;
+    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(code) << 48));
 }
 
 void daikiri_protocol_encode_is_sleep_mode(DaikiriProtocol* protocol) {
@@ -94,7 +97,8 @@ void daikiri_protocol_encode_hash(DaikiriProtocol* protocol) {
 }
 
 void daikiri_protocol_encode_timer_on_hours(DaikiriProtocol* protocol) {
-    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(protocol->timer_on_hours) << 32));
+    uint8_t code = ((protocol->timer_on_hours / 10) << 4) + protocol->timer_on_hours % 10;
+    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(code) << 32));
 }
 
 void daikiri_protocol_encode_timer_on_minutes(DaikiriProtocol* protocol) {
@@ -108,7 +112,8 @@ void daikiri_protocol_encode_timer_on_minutes(DaikiriProtocol* protocol) {
 }
 
 void daikiri_protocol_encode_timer_off_hours(DaikiriProtocol* protocol) {
-    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(protocol->timer_off_hours) << 40));
+    uint8_t code = ((protocol->timer_off_hours / 10) << 4) + protocol->timer_off_hours % 10;
+    protocol->raw = protocol->raw | ((uint64_t)((uint64_t)(code) << 40));
 }
 
 void daikiri_protocol_encode_timer_off_minutes(DaikiriProtocol* protocol) {

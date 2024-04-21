@@ -27,19 +27,22 @@ void daikiri_protocol_decode_fan_mode(DaikiriProtocol* protocol) {
 void daikiri_protocol_decode_current_time_hours(DaikiriProtocol* protocol) {
     // Записывается в десятичном виде, но в 16-ричной системе счисления.
     uint64_t mask = 0xFFLL << 24;
-    protocol->current_time_hours = (uint64_t)((protocol->raw & mask) >> 24);
+    uint8_t code = (uint64_t)((protocol->raw & mask) >> 24);
+    protocol->current_time_hours = (((code & 0xF0LL) >> 4) * 10) + (code & 0x0FLL);
 }
 
 void daikiri_protocol_decode_current_time_minutes(DaikiriProtocol* protocol) {
     // Записывается в десятичном виде, но в 16-ричной системе счисления.
     uint64_t mask = 0xFFLL << 16;
-    protocol->current_time_minutes = (uint64_t)((protocol->raw & mask) >> 16);
+    uint8_t code = (uint64_t)((protocol->raw & mask) >> 16);
+    protocol->current_time_minutes = (((code & 0xF0LL) >> 4) * 10) + (code & 0x0FLL);
 }
 
 void daikiri_protocol_decode_temperature(DaikiriProtocol* protocol) {
     // Записывается в десятичном виде, но в 16-ричной системе счисления. (?)
     uint64_t mask = 0xFFLL << 48;
-    protocol->temperature = (uint64_t)((protocol->raw & mask) >> 48);
+    uint8_t code = (uint64_t)((protocol->raw & mask) >> 48);
+    protocol->temperature = (((code & 0xF0LL) >> 4) * 10) + (code & 0x0FLL);
 }
 
 void daikiri_protocol_decode_is_sleep_mode(DaikiriProtocol* protocol) {
@@ -95,7 +98,8 @@ void daikiri_protocol_decode_hash(DaikiriProtocol* protocol) {
 
 void daikiri_protocol_decode_timer_on_hours(DaikiriProtocol* protocol) {
     uint64_t mask = 0x3FLL << 32;
-    protocol->timer_on_hours = (uint64_t)((protocol->raw & mask) >> 32);
+    uint8_t code = (uint64_t)((protocol->raw & mask) >> 32);
+    protocol->timer_on_hours = (((code & 0xF0LL) >> 4) * 10) + (code & 0x0FLL);
 }
 
 void daikiri_protocol_decode_timer_on_minutes(DaikiriProtocol* protocol) {
@@ -110,16 +114,17 @@ void daikiri_protocol_decode_timer_on_minutes(DaikiriProtocol* protocol) {
 
 void daikiri_protocol_decode_timer_off_hours(DaikiriProtocol* protocol) {
     uint64_t mask = 0x3FLL << 40;
-    protocol->timer_off_hours = (uint64_t)((protocol->raw & mask) >> 40);
+    uint8_t code = (uint64_t)((protocol->raw & mask) >> 40);
+    protocol->timer_off_hours = (((code & 0xF0LL) >> 4) * 10) + (code & 0x0FLL);
 }
 
 void daikiri_protocol_decode_timer_off_minutes(DaikiriProtocol* protocol) {
     uint64_t mask = 1LL << 46;
     uint8_t timer_off_minutes_code = (uint64_t)((protocol->raw & mask) >> 46);
     if(timer_off_minutes_code > 0) {
-        protocol->timer_off_minutes = 0x30;
+        protocol->timer_off_minutes = 30;
     } else {
-        protocol->timer_off_minutes = 0x0;
+        protocol->timer_off_minutes = 0;
     }
 }
 
