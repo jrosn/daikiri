@@ -114,7 +114,7 @@ static void daikiri_signal_received_callback(void* context, InfraredWorkerSignal
         snprintf(
             buf,
             sizeof(buf),
-            "tp: %hhu, hash: %01x\nm: %s, t: %02x, f: %s, sm: %hhu, sw: %hhu\ntime: %02x:%02x\non: %hhu (%02x:%02x), off: %hhu (%02x:%02x)",
+            "tp: %hhu, hash: %01x\nm: %s, t: %02hhu, f: %s, sm: %hhu, sw: %hhu\ntime: %02hhu:%02hhu\non: %hhu (%02hhu:%02hhu), off: %hhu (%02hhu:%02hhu)",
             decoded->is_toggle_power,
             decoded->hash,
             daikiri_mode_to_string(decoded->mode),
