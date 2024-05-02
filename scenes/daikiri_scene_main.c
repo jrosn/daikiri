@@ -133,12 +133,11 @@ void daikiri_scene_main_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, DaikiriAppViewStack);
 }
 
-void daikiri_scene_main_update_current_time_in_state(DaikiriApp *app) {
-    uint32_t timestamp = furi_hal_rtc_get_timestamp();
+void daikiri_scene_main_update_current_time_in_state(DaikiriApp* app) {
     DateTime currentDateTime = {};
-    datetime_timestamp_to_datetime(timestamp, &currentDateTime);
+    furi_hal_rtc_get_datetime(&currentDateTime);
     app->state->current_time_hours = currentDateTime.hour;
-    app->state->current_time_hours = currentDateTime.minute;
+    app->state->current_time_minutes = currentDateTime.minute;
 }
 
 bool daikiri_scene_main_on_event(void* context, SceneManagerEvent event) {
@@ -151,12 +150,23 @@ bool daikiri_scene_main_on_event(void* context, SceneManagerEvent event) {
         int16_t event_value;
         daikiri_custom_event_unpack(event.event, &event_type, &event_value);
         if(event_type == DaikiriCustomEventTypeSendCommand) {
+            daikiri_scene_main_update_current_time_in_state(app);
+
+            FuriString* string = furi_string_alloc();
+            daikiri_protocol_to_string(string, app->state);
+            FURI_LOG_I(
+                    TAG,
+                    "Sending signal: %s",
+                    furi_string_get_cstr(string)
+            );
+            furi_string_free(string);
+
             NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
             notification_message(notifications, &sequence_blink_white_100);
-            daikiri_scene_main_update_current_time_in_state(app);
             daikiri_protocol_send(app->state);
-            app->state->is_toggle_power = false;
             notification_message(notifications, &sequence_blink_stop);
+
+            app->state->is_toggle_power = false;
         } else if(event_type == DaikiriCustomEventTypeButtonSelected) {
             switch(event_value) {
             case BUTTON_TOGGLE_POWER:

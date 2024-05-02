@@ -67,3 +67,9 @@ bool is_equial_by_precision(uint32_t a, uint32_t b, uint32_t precision);
 void daikiri_protocol_free(DaikiriProtocol* ptr);
 
 DaikiriProtocol* daikiri_protocol_alloc_default();
+
+void daikiri_protocol_to_string(FuriString* str, DaikiriProtocol* protocol);
+
+char* daikiri_protocol_mode_to_char(DaikiriMode mode);
+
+char* daikiri_protocol_fan_mode_to_char(DaikiriFanMode fan_mode);

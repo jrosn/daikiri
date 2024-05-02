@@ -14,25 +14,6 @@
 #include "daikiri_protocol_encoder.h"
 #include "daikiri_defs.h"
 
-static char* daikiri_mode_to_string(DaikiriMode mode) {
-    if(mode == DAIKIRI_MODE_COOL) return "C";
-    if(mode == DAIKIRI_MODE_DRY) return "D";
-    if(mode == DAIKIRI_MODE_FAN) return "F";
-    if(mode == DAIKIRI_MODE_HEAT) return "H";
-    if(mode == DAIKIRI_MODE_AUTO) return "A";
-    return 0;
-}
-
-static char* daikiri_fan_mode_to_string(DaikiriFanMode fan_mode) {
-    if(fan_mode == DAIKIRI_FAN_MODE_AUTO) return "A";
-    if(fan_mode == DAIKIRI_FAN_MODE_MIN) return "1";
-    if(fan_mode == DAIKIRI_FAN_MODE_MEDIUM) return "2";
-    if(fan_mode == DAIKIRI_FAN_MODE_MAX) return "3";
-    if(fan_mode == DAIKIRI_FAN_MODE_QUIET) return "Q";
-    if(fan_mode == DAIKIRI_FAN_MODE_TURBO) return "T";
-    return 0;
-}
-
 static void daikiri_draw_callback(Canvas* canvas, void* context) {
     UNUSED(context);
 
@@ -87,29 +68,19 @@ static void daikiri_signal_received_callback(void* context, InfraredWorkerSignal
         }
         FURI_LOG_I("DaikiriEncoder", "%s", furi_string_get_cstr(decoded_string1));
 
-
         NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
         notification_message(notifications, &sequence_success);
         furi_record_close(RECORD_NOTIFICATION);
+
+        FuriString* string = furi_string_alloc();
+        daikiri_protocol_to_string(string, decoded);
         FURI_LOG_I(
             TAG,
-            "Received signal: raw: 0x%016llx, time: %02hhu:%02hhu, mode: %s, temp: %02hhu, fan: %s, sm: %hhu, sw: %hhu, tp: %hhu, hash: %01x, on: %hhu (%02hhu:%02hhu), off: %hhu (%02hhu:%02hhu)",
-            decoded->raw,
-            decoded->current_time_hours,
-            decoded->current_time_minutes,
-            daikiri_mode_to_string(decoded->mode),
-            decoded->temperature,
-            daikiri_fan_mode_to_string(decoded->fan_mode),
-            decoded->is_sleep_mode,
-            decoded->is_swing,
-            decoded->is_toggle_power,
-            decoded->hash,
-            decoded->is_timer_on_enabled,
-            decoded->timer_on_hours,
-            decoded->timer_on_minutes,
-            decoded->is_timer_off_enabled,
-            decoded->timer_off_hours,
-            decoded->timer_off_minutes);
+            "Received signal: %s",
+            furi_string_get_cstr(string)
+        );
+
+        furi_string_free(string);
         char buf[128];
         snprintf(
             buf,
@@ -117,9 +88,9 @@ static void daikiri_signal_received_callback(void* context, InfraredWorkerSignal
             "tp: %hhu, hash: %01x\nm: %s, t: %02hhu, f: %s, sm: %hhu, sw: %hhu\ntime: %02hhu:%02hhu\non: %hhu (%02hhu:%02hhu), off: %hhu (%02hhu:%02hhu)",
             decoded->is_toggle_power,
             decoded->hash,
-            daikiri_mode_to_string(decoded->mode),
+            daikiri_protocol_mode_to_char(decoded->mode),
             decoded->temperature,
-            daikiri_fan_mode_to_string(decoded->fan_mode),
+            daikiri_protocol_fan_mode_to_char(decoded->fan_mode),
             decoded->is_sleep_mode,
             decoded->is_swing,
             decoded->current_time_hours,
