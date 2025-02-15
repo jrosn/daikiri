@@ -235,12 +235,12 @@ DaikiriProtocol* daikiri_protocol_interpret_timings(const uint32_t* timings, siz
         return NULL;
     }
 
-     FuriString* str = furi_string_alloc();
-     for(size_t i = 0; i < timings_cnt; i++) {
-         furi_string_cat_printf(str, "\n%lu", timings[i]);
-     }
+    FuriString* str = furi_string_alloc();
+    for(size_t i = 0; i < timings_cnt; i++) {
+        furi_string_cat_printf(str, "\n%lu", timings[i]);
+    }
 
-     FURI_LOG_I("DaikiriDecoder", "%s", furi_string_get_cstr(str));
+    FURI_LOG_I("DaikiriDecoder", "%s", furi_string_get_cstr(str));
 
     DaikiriProtocol* protocol = malloc(sizeof(DaikiriProtocol));
     protocol->raw = raw;
