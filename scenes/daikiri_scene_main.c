@@ -237,6 +237,7 @@ void daikiri_scene_main_on_exit(void* context)
 //    view_stack_remove_view(ac_remote->view_stack, ac_remote_panel_get_view(ac_remote_panel));
 //    ac_remote_panel_reset(ac_remote_panel);
     DaikiriApp* app = context;
+    
     ac_remote_panel_free(app->ac_remote_panel);
     furi_string_free(temperature_buffer);
 }

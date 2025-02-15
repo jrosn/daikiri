@@ -1,7 +1,5 @@
 #include "daikiri_app_i.h"
 
-#include "furi.h"
-
 static bool daikiri_app_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
     DaikiriApp* app = context;
@@ -27,7 +25,6 @@ DaikiriApp* daikiri_app_alloc() {
     app->scene_manager = scene_manager_alloc(&daikiri_scene_handlers, app);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
             app->view_dispatcher, daikiri_app_custom_event_callback);
@@ -53,15 +50,11 @@ void daikiri_app_free(DaikiriApp* app) {
 
     // Views
     view_dispatcher_remove_view(app->view_dispatcher, DaikiriAppViewStack);
-
     // View dispatcher
     view_dispatcher_free(app->view_dispatcher);
-    view_stack_free(app->view_stack);
-    ac_remote_panel_free(app->ac_remote_panel);
-    scene_manager_free(app->scene_manager);
-
     // Close records
     furi_record_close(RECORD_GUI);
+
     free(app);
 }
 
